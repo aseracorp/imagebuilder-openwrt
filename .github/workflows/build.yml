@@ -22,7 +22,7 @@ on:
         description: 'Additional packages to include (space-separated)'
         required: false
         type: string
-        default: 'tailscale luci-ssl fdisk kmod-fs-btrfs btrfs-progs block-mount chattr docker dockerd luci-app-dockerman luci-app-uhttpd attendedsysupgrade-common luci-app-attendedsysupgrade kmod-usb-acm avahi-daemon bash'
+        default: 'tailscale luci-ssl sfdisk kmod-fs-btrfs btrfs-progs block-mount chattr docker dockerd luci-app-dockerman luci-app-uhttpd attendedsysupgrade-common luci-app-attendedsysupgrade kmod-usb-acm avahi-daemon bash'
       files:
         description: 'Folder with additional files (f.e. files/etc/uci-defaults)'
         required: false
@@ -61,9 +61,23 @@ jobs:
           docker cp $container_id:/openwrt/openwrt-imagebuilder/bin .
           docker rm $container_id
 
-      - name: Upload artifacts
+      - id: targetpath
+        uses: frabert/replace-string-action@v2
+        with:
+          pattern: '-'
+          string: ${{ format(github.event.inputs.target) }}
+          replace-with: '/'
+
+      - name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
-          name: openwrt-firmware
-          path: bin/
+          name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory.img.gz
+          retention-days: 7
+
+      - name: Upload sysupgrade image
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
           retention-days: 7

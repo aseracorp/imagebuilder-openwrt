@@ -93,16 +93,11 @@ if [ -n "$storage" ]; then
   #stop docker service
   #service dockerd stop
   # add 3rd partition after 1024MB
-  sleep 10
-  echo "n
-  p
-  3
-  2097153
-
-  w
-  "|fdisk /dev/"$storage"
+  echo '2097153,,83,' | sfdisk -a -W always --no-reread /dev/"$storage"
+  partx -u /dev/"$storage"
+  partx -u /dev/"$storage"p3
   #format partition
-  mkfs.btrfs /dev/"$storage"p3 -qf
+  mkfs.btrfs /dev/"$storage"p3 -f
   #set btrfs docker storage driver
   uci set dockerd.globals.storage_driver="btrfs"
   # clear docker dir
