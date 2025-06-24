@@ -47,37 +47,6 @@ if [ -n "$wlan_name" -a -n "$wlan_password" -a ${#wlan_password} -ge 8 ]; then
   uci commit wireless
 fi
 
-#mount eMMC (btrfs) filesystem (used for cosmos)
-if [ -n "$storage" ]; then
-  echo "add 3rd partition (btrfs) on empty space"
-  #stop docker service
-  #service dockerd stop
-  # add 3rd partition after 1024MB
-  echo "n
-  p
-  3
-  2097153
-
-  w
-  "|fdisk /dev/"$storage"
-  #format partition
-  mkfs.btrfs /dev/"$storage"p3 -q
-  #set btrfs docker storage driver
-  uci set dockerd.globals.storage_driver="btrfs"
-  # clear docker dir
-  #rm -R /opt/docker/*
-  # mount btrfs partition to docker dir
-  block detect | uci import fstab
-  uci set fstab.@mount[-1].target='/opt/docker'
-  uci set fstab.@mount[-1].enabled='1'
-  uci set fstab.@mount[-1].options='compress=zstd:10'
-  uci commit fstab
-  uci commit dockerd
-  #service fstab boot
-  #service dockerd start
-  mkdir /opt/docker/volumes && chattr +C /opt/docker/volumes
-fi
-
 # setup cosmos
 if [ -n "$cosmos" ]; then
 
@@ -116,6 +85,40 @@ if [ -n "$cosmos" ]; then
   #service CosmosCloud enable
   #service CosmosCloud start
 
+fi
+
+#mount eMMC (btrfs) filesystem (used for cosmos)
+if [ -n "$storage" ]; then
+  echo "add 3rd partition (btrfs) on empty space"
+  #stop docker service
+  #service dockerd stop
+  # add 3rd partition after 1024MB
+  sleep 10
+  echo "n
+  p
+  3
+  2097153
+
+  w
+  "|fdisk /dev/"$storage"
+  #format partition
+  mkfs.btrfs /dev/"$storage"p3 -qf
+  #set btrfs docker storage driver
+  uci set dockerd.globals.storage_driver="btrfs"
+  # clear docker dir
+  #rm -R /opt/docker/*
+  # mount btrfs partition to docker dir
+  block detect | uci import fstab
+  uci set fstab.@mount[-1].target='/opt/docker'
+  uci set fstab.@mount[-1].enabled='1'
+  uci set fstab.@mount[-1].options='compress=zstd:10'
+  uci commit fstab
+  uci commit dockerd
+  #service fstab boot
+  #service dockerd start
+  #service fstab boot
+  #sleep 5 && mkdir -p /opt/docker/volumes
+  #chattr +C /opt/docker/volumes
 fi
 
 echo "All done!"
