@@ -9,20 +9,31 @@ on:
         type: string
         default: '24.10.1'
       target:
-        description: 'Target architecture (e.g., ath79-generic)'
+        description: 'Target architecture (e.g., bcm27xx-bcm2711)'
         required: true
         type: string
-        default: 'ath79-generic'
+        default: 'bcm27xx-bcm2711'
       profile:
-        description: 'Device profile (e.g., tplink_archer-c60-v2)'
+        description: 'Device profile (e.g., rpi-4)'
         required: true
         type: string
-        default: 'tplink_archer-c60-v2'
+        default: 'rpi-4'
       packages:
         description: 'Additional packages to include (space-separated)'
         required: false
         type: string
-        default: ''
+        default: 'tailscale luci-ssl fdisk kmod-fs-btrfs btrfs-progs block-mount chattr docker dockerd luci-app-dockerman luci-app-uhttpd attendedsysupgrade-common luci-app-attendedsysupgrade kmod-usb-acm avahi-daemon bash'
+      files:
+        description: 'Folder with additional files (f.e. files/etc/uci-defaults)'
+        required: false
+        type: string
+        default: 'files'
+      rootfs_partsize:
+        description: 'OpenWRT Root-Filesystem Partition size (e.g. 896)'
+        required: false
+        type: string
+        default: '896'
+
 
 jobs:
   build:
@@ -40,6 +51,8 @@ jobs:
                       --build-arg target=${{ github.event.inputs.target }} \
                       --build-arg profile=${{ github.event.inputs.profile }} \
                       --build-arg packages="${{ github.event.inputs.packages }}" \
+                      --build-arg files="${{ github.event.inputs.files }}" \
+                      --build-arg rootfs_partsize="${{ github.event.inputs.rootfs_partsize }}" \
                       -t openwrt-builder .
 
       - name: Copy artifacts from container

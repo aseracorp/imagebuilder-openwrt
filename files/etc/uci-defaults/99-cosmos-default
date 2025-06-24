@@ -1,0 +1,121 @@
+# Beware! This script will be in /rom/etc/uci-defaults/ as part of the image.
+# Uncomment lines to apply:
+
+# wlan_name="OpenWrt"
+# wlan_password=""
+
+# root_password=""
+# lan_ip_address="192.168.1.1"
+# if left commented, LAN will be set to dhcp client
+
+# enable cosmos on boot
+cosmos=1
+
+# additional storage for cosmos? (mmcblk0=internal eMMC)
+storage="mmcblk0"
+
+#################
+
+# log potential errors
+exec >/tmp/setup.log 2>&1
+
+if [ -n "$root_password" ]; then
+  (echo "$root_password"; sleep 1; echo "$root_password") | passwd > /dev/null
+fi
+
+# Configure LAN
+# More options: https://openwrt.org/docs/guide-user/base-system/basic-networking
+if [ -n "$lan_ip_address" ]; then
+  echo "set static IP $lan_ip_address"
+  uci set network.lan.ipaddr="$lan_ip_address"
+  uci commit network
+else
+  echo "set IP to dhcp-client"
+  uci set network.lan.proto="dhcp"
+  uci commit network
+fi
+
+# Configure WLAN
+# More options: https://openwrt.org/docs/guide-user/network/wifi/basic#wi-fi_interfaces
+if [ -n "$wlan_name" -a -n "$wlan_password" -a ${#wlan_password} -ge 8 ]; then
+  echo "set Wifi-Settings"
+  uci set wireless.@wifi-device[0].disabled='0'
+  uci set wireless.@wifi-iface[0].disabled='0'
+  uci set wireless.@wifi-iface[0].encryption='sae-mixed'
+  uci set wireless.@wifi-iface[0].ssid="$wlan_name"
+  uci set wireless.@wifi-iface[0].key="$wlan_password"
+  uci commit wireless
+fi
+
+#mount eMMC (btrfs) filesystem (used for cosmos)
+if [ -n "$storage" ]; then
+  echo "add 3rd partition (btrfs) on empty space"
+  #stop docker service
+  service dockerd stop
+  # add 3rd partition after 1024MB
+  echo "n
+  p
+  3
+  2097153
+
+  w
+  "|fdisk /dev/"$storage"
+  #format partition
+  mkfs.btrfs /dev/"$storage"p3 -q
+  #set btrfs docker storage driver
+  uci set dockerd.globals.storage_driver="btrfs"
+  # clear docker dir
+  rm -R /opt/docker/*
+  # mount btrfs partition to docker dir
+  block detect | uci import fstab
+  uci set fstab.@mount[-1].target='/opt/docker'
+  uci set fstab.@mount[-1].enabled='1'
+  uci set fstab.@mount[-1].options='compress=zstd:10'
+  uci commit fstab
+  uci commit dockerd
+  service fstab boot
+  service dockerd start
+  sleep 5 && chattr +C /opt/docker/volumes
+fi
+
+# setup cosmos
+if [ -n "$cosmos" ]; then
+
+  #switch luci to free ports
+  echo "setup luci to free ports"
+  uci del uhttpd.main.listen_http
+  uci add_list uhttpd.main.listen_http='0.0.0.0:8080'
+  uci add_list uhttpd.main.listen_http='[::]:8080'
+  uci del uhttpd.main.listen_https
+  uci add_list uhttpd.main.listen_https='0.0.0.0:4443'
+  uci add_list uhttpd.main.listen_https='[::]:4443'
+  uci set uhttpd.main.redirect_https='1'
+  uci commit uhttpd
+
+  #add network rules for cosmos-Networks
+  echo "setup firewall rules for cosmos"
+  uci add firewall zone
+  uci set firewall.@zone[-1].name='cosmos'
+  uci set firewall.@zone[-1].input='REJECT'
+  uci set firewall.@zone[-1].output='ACCEPT'
+  uci set firewall.@zone[-1].forward='REJECT'
+  uci add_list firewall.@zone[-1].subnet='172.16.0.0/12'
+  uci add firewall forwarding
+  uci set firewall.@forwarding[-1].src='cosmos'
+  uci set firewall.@forwarding[-1].dest='lan'
+  uci add firewall forwarding
+  uci set firewall.@forwarding[-1].src='cosmos'
+  uci set firewall.@forwarding[-1].dest='wan'
+  uci add firewall forwarding
+  uci set firewall.@forwarding[-1].src='lan'
+  uci set firewall.@forwarding[-1].dest='cosmos'
+  uci commit firewall
+
+  #enable cosmos service
+  echo "enable cosmos service"
+  service CosmosCloud enable
+  service CosmosCloud start
+
+fi
+
+echo "All done!"
