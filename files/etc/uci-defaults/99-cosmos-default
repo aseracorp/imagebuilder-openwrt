@@ -117,3 +117,4 @@ if [ -n "$storage" ]; then
 fi
 
 echo "All done!"
+reboot -d 2
