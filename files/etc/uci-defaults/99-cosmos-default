@@ -51,7 +51,7 @@ fi
 if [ -n "$storage" ]; then
   echo "add 3rd partition (btrfs) on empty space"
   #stop docker service
-  service dockerd stop
+  #service dockerd stop
   # add 3rd partition after 1024MB
   echo "n
   p
@@ -65,7 +65,7 @@ if [ -n "$storage" ]; then
   #set btrfs docker storage driver
   uci set dockerd.globals.storage_driver="btrfs"
   # clear docker dir
-  rm -R /opt/docker/*
+  #rm -R /opt/docker/*
   # mount btrfs partition to docker dir
   block detect | uci import fstab
   uci set fstab.@mount[-1].target='/opt/docker'
@@ -73,9 +73,9 @@ if [ -n "$storage" ]; then
   uci set fstab.@mount[-1].options='compress=zstd:10'
   uci commit fstab
   uci commit dockerd
-  service fstab boot
-  service dockerd start
-  sleep 5 && chattr +C /opt/docker/volumes
+  #service fstab boot
+  #service dockerd start
+  mkdir /opt/docker/volumes && chattr +C /opt/docker/volumes
 fi
 
 # setup cosmos
@@ -112,9 +112,9 @@ if [ -n "$cosmos" ]; then
   uci commit firewall
 
   #enable cosmos service
-  echo "enable cosmos service"
-  service CosmosCloud enable
-  service CosmosCloud start
+  #echo "enable cosmos service"
+  #service CosmosCloud enable
+  #service CosmosCloud start
 
 fi
 
