@@ -12,7 +12,7 @@
 cosmos=1
 
 # additional storage for cosmos? (mmcblk0=internal eMMC)
-storage="mmcblk0"
+# storage="mmcblk0"
 
 #################
 

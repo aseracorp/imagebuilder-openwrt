@@ -61,7 +61,6 @@ RUN echo "INSTALLING COSMOS CLOUD..." && \
     rmdir cosmos-cloud-${LATEST_RELEASE_NO_V} && \
     rm start.sh
 
-COPY --chmod=775 chmod775/etc/init.d/CosmosCloud files/etc/init.d/CosmosCloud
-COPY --chmod=775 chmod775/opt/cosmos/start.sh files/opt/cosmos/start.sh
+COPY --chmod=775 chmod775 files
 
 RUN make image PROFILE=${profile} PACKAGES="${packages}" FILES="${files}" ROOTFS_PARTSIZE="${rootfs_partsize}"

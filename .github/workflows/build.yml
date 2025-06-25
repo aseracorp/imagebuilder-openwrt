@@ -74,6 +74,7 @@ jobs:
           name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
           path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory.img.gz
           retention-days: 7
+          compression-level: 0 # no compression
 
       - name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
@@ -81,3 +82,4 @@ jobs:
           name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
           path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
           retention-days: 7
+          compression-level: 0 # no compression
