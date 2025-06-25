@@ -13,12 +13,9 @@ exec >/tmp/09-btrfs-partition.log 2>&1
 if [ -n "$storage" ]; then
   echo "add 3rd partition (btrfs) on empty space..."
   # add 3rd partition after 1024MB
-  echo "n
-  p
-  3
-  2097153
-
-  w" | fdisk -W never /dev/"$storage"
+  parted -sf /dev/"$storage" -- mkpart primary btrfs 2097152s 100%
+  #partx -u /dev/"$storage"
+  #partx -u /dev/"$storage"p3
   #format partition
   echo "format 3rd partition (btrfs)..."
   mkfs.btrfs /dev/"$storage"p3 -f
