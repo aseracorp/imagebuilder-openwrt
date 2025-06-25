@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'OpenWrt version (e.g., 24.10.1)'
+        description: 'OpenWrt version (e.g., 24.10.2)'
         required: true
         type: string
-        default: '24.10.1'
+        default: '24.10.2'
       target:
         description: 'Target architecture (e.g., bcm27xx-bcm2711)'
         required: true
@@ -33,6 +33,16 @@ on:
         required: false
         type: string
         default: '896'
+      btrfs-partition:
+        description: 'Add persistent BTRFS-Partition'
+        required: false
+        type: boolean
+        default: true
+      ssh-key:
+        description: 'Add authorized SSH-Key'
+        required: false
+        type: string
+        default: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWOSY2frpHkUagJB4ZFtK4aLkLUUkdSP6nAYl4h+/QJ eddsa-key-20240826'
 
 
 jobs:

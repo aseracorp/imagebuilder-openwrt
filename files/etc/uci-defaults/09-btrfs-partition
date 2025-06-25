@@ -1,0 +1,30 @@
+# Beware! This script will be in /rom/etc/uci-defaults/ as part of the image.
+
+echo "add 3rd partition (btrfs) on empty space"
+#stop docker service
+#service dockerd stop
+# add 3rd partition after 1024MB
+echo '2097153,,83,' | sfdisk -a -W always --no-reread /dev/"$storage"
+partx -u /dev/"$storage"
+partx -u /dev/"$storage"p3
+#format partition
+mkfs.btrfs /dev/"$storage"p3 -f
+#set btrfs docker storage driver
+uci set dockerd.globals.storage_driver="btrfs"
+# clear docker dir
+#rm -R /opt/docker/*
+# mount btrfs partition to docker dir
+block detect | uci import fstab
+uci set fstab.@mount[-1].target='/opt/docker'
+uci set fstab.@mount[-1].enabled='1'
+uci set fstab.@mount[-1].options='compress=zstd:10'
+uci commit fstab
+uci commit dockerd
+#service fstab boot
+#service dockerd start
+#service fstab boot
+#sleep 5 && mkdir -p /opt/docker/volumes
+#chattr +C /opt/docker/volumes
+
+echo "All done!"
+exit 0

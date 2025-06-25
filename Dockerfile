@@ -1,6 +1,6 @@
 FROM debian:stable
 
-ARG version=24.10.1
+ARG version=snapshot
 ENV version=$version
 
 ARG target=bcm27xx-bcm2711
@@ -15,8 +15,14 @@ ENV packages=$packages
 ARG files=files
 ENV files=$files
 
-ARG rootfs_partsize=512
+ARG rootfs_partsize=896
 ENV rootfs_partsize=$rootfs_partsize
+
+ARG btrfs-partition=0
+ENV btrfs-partition=$btrfs-partition
+
+ARG ssh-key=
+ENV ssh-key=$ssh-key
 
 SHELL ["/bin/bash", "-c"]
 
@@ -26,7 +32,7 @@ RUN apt-get update && apt-get -y install build-essential file libncurses-dev zli
 RUN mkdir /openwrt
 WORKDIR /openwrt
 
-RUN if [ "${version}" = "snapshots" ]; then \
+RUN if [ "${version}" = "snapshot" ]; then \
     curl -L "https://downloads.openwrt.org/snapshots/targets/${target//-//}/openwrt-imagebuilder-${target}.Linux-x86_64.tar.zst" -o "openwrt-imagebuilder-${target}.Linux-x86_64.tar.zst" && \
     curl -L "https://downloads.openwrt.org/snapshots/targets/${target//-//}/sha256sums" -o sha256sums; \
     else \
@@ -35,16 +41,14 @@ RUN if [ "${version}" = "snapshots" ]; then \
     fi && \
     sha256sum --check --ignore-missing sha256sums && \
     tar --zstd -x -f openwrt-imagebuilder-* && \
-    rm openwrt-imagebuilder-*.tar.zst && \
+    rm openwrt-imagebuilder-*.tar.zst && rm sha256sums && \
     mv openwrt-imagebuilder-* openwrt-imagebuilder
 
 WORKDIR /openwrt/openwrt-imagebuilder
 
-COPY files files
-
 RUN echo "INSTALLING COSMOS CLOUD..." && \
     echo "Creating directories..." && \
-    mkdir -p files/opt/cosmos && cd files/opt/cosmos && \
+    mkdir -p files/opt/cosmos && \
     LATEST_RELEASE=$(curl -s https://api.github.com/repos/azukaar/Cosmos-Server/releases/latest | grep "tag_name" | cut -d '"' -f 4) && \
     echo "Downloading Cosmos release $LATEST_RELEASE..." && \
     ZIP_FILE="cosmos-cloud-${LATEST_RELEASE#v}-arm64.zip" && \
@@ -54,13 +58,16 @@ RUN echo "INSTALLING COSMOS CLOUD..." && \
     md5sum -c "${ZIP_FILE}.md5" && \
     echo "Extracting files..." && \
     unzip -o "${ZIP_FILE}" && \
-    rm -f "${ZIP_FILE}" "${ZIP_FILE}.md5" && \
-    LATEST_RELEASE_NO_V=${LATEST_RELEASE#v} && \
-    mv cosmos-cloud-${LATEST_RELEASE_NO_V}-arm64 cosmos-cloud-${LATEST_RELEASE_NO_V} && \
-    mv cosmos-cloud-${LATEST_RELEASE_NO_V}/* ./ && \
-    rmdir cosmos-cloud-${LATEST_RELEASE_NO_V} && \
-    rm start.sh
+    mv cosmos-cloud-${LATEST_RELEASE#v}-arm64/* files/opt/cosmos/
 
-COPY --chmod=775 chmod775 files
+RUN mkdir -p files/etc/dropbear && echo "${ssh-key}" >> files/etc/dropbear/authorized_keys
+
+COPY --chmod=755 files files
+
+RUN echo "check for btrfs-partition = ${btrfs-partition}" && \
+    if [ "${btrfs-partition}" = 0 ]; then \
+    echo "add btrfs-partition..." && \
+    rm files/etc/uci-defaults/09-btrfs-partition; \
+    fi
 
 RUN make image PROFILE=${profile} PACKAGES="${packages}" FILES="${files}" ROOTFS_PARTSIZE="${rootfs_partsize}"
