@@ -12,7 +12,7 @@
 cosmos=1
 
 # additional storage for cosmos? (mmcblk0=internal eMMC)
-#storage="mmcblk0"
+storage="mmcblk0"
 
 #################
 
@@ -79,41 +79,32 @@ if [ -n "$cosmos" ]; then
   uci set firewall.@forwarding[-1].src='lan'
   uci set firewall.@forwarding[-1].dest='cosmos'
   uci commit firewall
-
-  #enable cosmos service
-  #echo "enable cosmos service"
-  #service CosmosCloud enable
-  #service CosmosCloud start
-
 fi
 
 #mount eMMC (btrfs) filesystem (used for cosmos)
 if [ -n "$storage" ]; then
-  echo "add 3rd partition (btrfs) on empty space"
+  echo "add 3rd partition (btrfs) on empty space..."
   # add 3rd partition after 1024MB
-  echo '2097153,,83,' | sfdisk -a -W always --no-reread /dev/"$storage"
-  echo "partx -u /dev/$storage"
-  partx -u /dev/"$storage"
-  echo "partx -u /dev/'$storage'p3"
-  partx -u /dev/"$storage"p3
+  echo "n
+  p
+  3
+  2097153
+
+  w
+  "|fdisk /dev/"$storage" -W always
   #format partition
-  echo "mkfs.btrfs /dev/'$storage'p3 -f"
+  echo "format 3rd partition (btrfs)..."
   mkfs.btrfs /dev/"$storage"p3 -f
-  #set btrfs docker storage driver
-  echo "uci set dockerd.globals.storage_driver='btrfs'"
-  uci set dockerd.globals.storage_driver="btrfs"
   # mount btrfs partition to docker dir
-  echo "block detect | uci import fstab"
+  echo "mount 3rd partition (btrfs)..."
   block detect | uci import fstab
-  echo "uci set fstab.@mount[-1].target='/opt/docker'"
   uci set fstab.@mount[-1].target='/opt/docker'
-  echo "uci set fstab.@mount[-1].enabled='1'"
   uci set fstab.@mount[-1].enabled='1'
-  echo "uci set fstab.@mount[-1].options='compress=zstd:10'"
   uci set fstab.@mount[-1].options='compress=zstd:10'
-  echo "uci commit fstab"
   uci commit fstab
-  echo "uci commit dockerd"
+  #set btrfs docker storage driver
+  echo "switch docker storage driver to btrfs..."
+  uci set dockerd.globals.storage_driver="btrfs"
   uci commit dockerd
 fi
 

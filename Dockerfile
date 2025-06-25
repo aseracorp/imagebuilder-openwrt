@@ -18,9 +18,6 @@ ENV files=$files
 ARG rootfs_partsize=896
 ENV rootfs_partsize=$rootfs_partsize
 
-ARG btrfs-partition=0
-ENV btrfs-partition=$btrfs-partition
-
 ARG ssh-key=
 ENV ssh-key=$ssh-key
 
@@ -63,11 +60,5 @@ RUN echo "INSTALLING COSMOS CLOUD..." && \
 RUN mkdir -p files/etc/dropbear && echo "${ssh-key}" >> files/etc/dropbear/authorized_keys
 
 COPY --chmod=755 files files
-
-RUN echo "check for btrfs-partition = ${btrfs-partition}" && \
-    if [ "${btrfs-partition}" = 0 ]; then \
-    echo "add btrfs-partition..." && \
-    rm files/etc/uci-defaults/09-btrfs-partition; \
-    fi
 
 RUN make image PROFILE=${profile} PACKAGES="${packages}" FILES="${files}" ROOTFS_PARTSIZE="${rootfs_partsize}"
