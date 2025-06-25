@@ -91,7 +91,7 @@ if [ -n "$storage" ]; then
   2097153
 
   w
-  "|fdisk /dev/"$storage" -W always
+  "|fdisk -W never -w never /dev/"$storage"
   #format partition
   echo "format 3rd partition (btrfs)..."
   mkfs.btrfs /dev/"$storage"p3 -f
