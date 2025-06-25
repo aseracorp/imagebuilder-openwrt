@@ -83,12 +83,10 @@ fi
 
 #mount eMMC (btrfs) filesystem (used for cosmos)
 if [ -n "$storage" ]; then
-  set -e
   echo "add 3rd partition (btrfs) on empty space..."
   # add 3rd partition after 1024MB
   parted -sf /dev/"$storage" -- mkpart primary btrfs 1024 100%
-  partx -u /dev/"$storage"
-  partx -u /dev/"$storage"p3
+  sleep 5 && partx -u /dev/$storage
   #format partition
   echo "format 3rd partition (btrfs)..."
   mkfs.btrfs /dev/"$storage"p3 -qf
@@ -103,7 +101,6 @@ if [ -n "$storage" ]; then
   echo "switch docker storage driver to btrfs..."
   uci set dockerd.globals.storage_driver="btrfs"
   uci commit dockerd
-  unset -e
 fi
 
 echo "All done!"
