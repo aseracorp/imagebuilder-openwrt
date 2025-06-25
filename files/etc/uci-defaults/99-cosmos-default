@@ -12,7 +12,7 @@
 cosmos=1
 
 # additional storage for cosmos? (mmcblk0=internal eMMC)
-storage="mmcblk0"
+# storage="mmcblk0"
 
 #################
 
@@ -97,10 +97,25 @@ if [ -n "$storage" ]; then
   uci set fstab.@mount[-1].enabled='1'
   uci set fstab.@mount[-1].options='compress=zstd:10'
   uci commit fstab
-  #set btrfs docker storage driver
+  #set btrfs dockerddocker storage driver
   echo "switch docker storage driver to btrfs..."
   uci set dockerd.globals.storage_driver="btrfs"
   uci commit dockerd
+  sleep 5 && partx -u /dev/$storage
+  #format partition
+  echo "format 3rd partition (btrfs)..."
+  mkfs.btrfs /dev/"$storage"p3 -qf
+  # mount btrfs partition to docker dir
+  echo "mount 3rd partition (btrfs)..."
+  block detect | uci import fstab
+  uci set fstab.@mount[-1].target='/opt/docker'
+  uci set fstab.@mount[-1].enabled='1'
+  uci set fstab.@mount[-1].options='compress=zstd:10'
+  uci commit fstab
+  #set btrfs docker storage driver
+  echo "switch docker storage driver to btrfs..."
+  uci set dockerd.globals.storage_driver="btrfs"
+  uci commit 
 fi
 
 echo "All done!"
