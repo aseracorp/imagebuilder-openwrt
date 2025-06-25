@@ -12,12 +12,12 @@
 cosmos=1
 
 # additional storage for cosmos? (mmcblk0=internal eMMC)
-storage="mmcblk0"
+#storage="mmcblk0"
 
 #################
 
 # log potential errors
-exec >/opt/99-cosmos-default.log 2>&1
+exec >/tmp/99-cosmos-default.log 2>&1
 
 if [ -n "$root_password" ]; then
   (echo "$root_password"; sleep 1; echo "$root_password") | passwd > /dev/null

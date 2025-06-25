@@ -22,7 +22,7 @@ on:
         description: 'Additional packages to include (space-separated)'
         required: false
         type: string
-        default: 'tailscale luci-ssl sfdisk kmod-fs-btrfs btrfs-progs block-mount chattr docker dockerd luci-app-dockerman luci-app-uhttpd attendedsysupgrade-common luci-app-attendedsysupgrade kmod-usb-acm avahi-daemon bash'
+        default: 'tailscale luci-ssl sfdisk fdisk kmod-fs-btrfs btrfs-progs block-mount chattr docker dockerd luci-app-dockerman luci-app-uhttpd attendedsysupgrade-common luci-app-attendedsysupgrade kmod-usb-acm avahi-daemon bash'
       files:
         description: 'Folder with additional files (f.e. files/etc/uci-defaults)'
         required: false
