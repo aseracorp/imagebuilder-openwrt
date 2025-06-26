@@ -78,25 +78,25 @@ jobs:
           string: ${{ format(github.event.inputs.target) }}
           replace-with: '/'
 
-      - if: ! contains(['snapshots'],${{ github.event.inputs.version }})
+      - if: ! contains(['snapshots'],${{ env.VERSION }})
         name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
-          name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
-          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory.img.gz
+          name: openwrt-${{ env.VERSION }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ env.VERSION }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory.img.gz
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: ! contains(['snapshots'],${{ github.event.inputs.version }})
+      - if: ! contains(['snapshots'],${{ env.VERSION }})
         name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
         with:
-          name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
-          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
+          name: openwrt-${{ env.VERSION }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ env.VERSION }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: contains(['snapshots'],${{ github.event.inputs.version }})
+      - if: contains(['snapshots'],${{ env.VERSION }})
         name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
@@ -105,7 +105,7 @@ jobs:
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: contains(['snapshots'],${{ github.event.inputs.version }})
+      - if: contains(['snapshots'],${{ env.VERSION }})
         name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
         with:

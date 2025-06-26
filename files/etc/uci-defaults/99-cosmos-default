@@ -11,9 +11,6 @@
 # enable cosmos on boot
 cosmos=1
 
-# additional storage for cosmos? (mmcblk0=internal eMMC)
-storage="mmcblk0"
-
 #################
 
 # log potential errors
@@ -79,62 +76,6 @@ if [ -n "$cosmos" ]; then
   uci set firewall.@forwarding[-1].src='lan'
   uci set firewall.@forwarding[-1].dest='cosmos'
   uci commit firewall
-fi
-
-#mount eMMC (btrfs) filesystem (used for cosmos)
-if [ -n "$storage" ]; then
-  rm /opt/cosmos/init.log
-  rm /opt/cosmos/init.conf
-  touch /opt/cosmos/init.conf
-  if [[ "$(cat /opt/cosmos/init.conf)" != "commissioned successfully" ]]; then
-    echo "$(date +"%F_%H%M%S") start init..."
-    #mount eMMC (btrfs) filesystem (used for cosmos)
-    if [ ! -e /dev/"$storage"p3 ]; then
-      echo "$(date +"%F_%H%M%S") add 3rd partition (btrfs) on empty space..."
-      # add & format 3rd partition after 1024MB
-      echo "n
-      p
-      3
-      2097152
-
-      w" | fdisk -W always /dev/"$storage"
-      echo "$(date +"%F_%H%M%S") format 3rd partition (btrfs)..."
-      sleep 5
-      partx -u /dev/"$storage"
-      mkfs.btrfs /dev/"$storage"p3
-      sleep 5
-    fi
-    if [[ "$(findmnt /opt/docker/ -no SOURCE)" != "/dev/${storage}p3" ]]; then
-      partx -u /dev/"$storage"
-      # mount btrfs partition to docker dir
-      echo "$(date +"%F_%H%M%S") mount 3rd partition (btrfs)..."
-      sleep 10 && block detect | uci import fstab
-      uci set fstab.@mount[-1].target='/opt/docker'
-      uci set fstab.@mount[-1].enabled='1'
-      uci set fstab.@mount[-1].options='compress=zstd:10'
-      uci commit fstab
-      #set btrfs dockerd storage driver
-      echo "$(date +"%F_%H%M%S") switch docker storage driver to btrfs..."
-      uci set dockerd.globals.storage_driver="btrfs"
-      uci commit dockerd
-    fi
-    if [[ "$(findmnt /opt/docker/ -no SOURCE)" = "/dev/${storage}p3" ]]; then
-      if [ -z ${cow+x} ]; then
-        echo "$(date +"%F_%H%M%S") disable copy on write on docker volumes..."
-        mkdir -p /opt/docker/volumes
-        chattr +C /opt/docker/volumes
-      elif [ $cow = 1 ]; then
-        echo "$(date +"%F_%H%M%S") enable copy on write on docker volumes... (! Danger)"
-        mkdir -p /opt/docker/volumes
-        chattr -C /opt/docker/volumes
-      fi
-      echo "$(date +"%F_%H%M%S") partition successfully mounted, store state as commissioned in init.conf. Delete the file to check partition-setup again"
-      echo "commissioned successfully" > init.conf
-    else
-      echo "$(date +"%F_%H%M%S") failed to mount, reboot in 10s and try again..." && \
-      sleep 10 && reboot #reboot, because all other commands like partx -u... weren't reliable
-    fi
-  fi
 fi
 
 echo "All done!"

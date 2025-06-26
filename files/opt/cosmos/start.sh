@@ -9,6 +9,16 @@ storage="mmcblk0"
 cd /opt/cosmos
 touch init.conf
 
+# workaround for raspberry pi retaining settings after reflash (https://forum.openwrt.org/t/pi-remembers-my-mistakes/164450/14)
+if [[ $(cat init.conf) = "commissioned successfully" ]]; then
+    if [ -n "$storage" ]; then
+        if [ ! -e /dev/"$storage"p3 ]; then
+            # missing partition despite state "commission successfully", force re-init
+            firstboot -y && reboot && exit 0
+        fi
+    fi
+fi
+
 if [[ $(cat init.conf) != "commissioned successfully" ]]; then
     echo "$(date +"%F_%H%M%S") start init..." >> init.log
     #mount eMMC (btrfs) filesystem (used for cosmos)
@@ -61,7 +71,7 @@ if [[ $(cat init.conf) != "commissioned successfully" ]]; then
             echo "commissioned successfully" > init.conf
         else
             echo "$(date +"%F_%H%M%S") failed to mount, reboot in 10s and try again..." >> init.log && \
-            sleep 10 && reboot #reboot, because all other commands like partx -u... weren't reliable
+            sleep 10 && reboot && exit 0 #reboot, because all other commands like partx -u... weren't reliable
         fi
     fi
 fi
