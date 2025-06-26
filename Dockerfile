@@ -1,6 +1,6 @@
 FROM debian:stable
 
-ARG version=snapshot
+ARG version=snapshots
 ENV version=$version
 
 ARG target=bcm27xx-bcm2711
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get -y install build-essential file libncurses-dev zli
 RUN mkdir /openwrt
 WORKDIR /openwrt
 
-RUN if [ "${version}" = "snapshot" ]; then \
+RUN if [ "${version}" = "snapshots" ]; then \
     curl -L "https://downloads.openwrt.org/snapshots/targets/${target//-//}/openwrt-imagebuilder-${target}.Linux-x86_64.tar.zst" -o "openwrt-imagebuilder-${target}.Linux-x86_64.tar.zst" && \
     curl -L "https://downloads.openwrt.org/snapshots/targets/${target//-//}/sha256sums" -o sha256sums; \
     else \

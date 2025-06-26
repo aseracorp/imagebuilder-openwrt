@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         description: 'OpenWrt version (e.g., 24.10.2)'
-        required: true
+        required: false
         type: string
         default: '24.10.2'
       target:
@@ -39,6 +39,8 @@ on:
         type: string
         default: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWOSY2frpHkUagJB4ZFtK4aLkLUUkdSP6nAYl4h+/QJ eddsa-key-20240826'
 
+env:
+  VERSION: "snapshots"
 
 jobs:
   build:
@@ -50,9 +52,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - if: ${{ github.event.inputs.version != '' }}
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
+
       - name: Build OpenWrt image
         run: |
-          docker build --build-arg version=${{ github.event.inputs.version }} \
+          docker build --build-arg version=${{ env.VERSION }} \
                       --build-arg target=${{ github.event.inputs.target }} \
                       --build-arg profile=${{ github.event.inputs.profile }} \
                       --build-arg packages="${{ github.event.inputs.packages }}" \
@@ -73,7 +78,8 @@ jobs:
           string: ${{ format(github.event.inputs.target) }}
           replace-with: '/'
 
-      - name: Upload factory image
+      - if: ! contains(['snapshots'],${{ github.event.inputs.version }})
+        name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
@@ -81,10 +87,29 @@ jobs:
           retention-days: 7
           compression-level: 0 # no compression
 
-      - name: Upload sysupgrade image
+      - if: ! contains(['snapshots'],${{ github.event.inputs.version }})
+        name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
           path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.version }}-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
+          retention-days: 7
+          compression-level: 0 # no compression
+
+      - if: contains(['snapshots'],${{ github.event.inputs.version }})
+        name: Upload factory image
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-factory.img.gz
+          retention-days: 7
+          compression-level: 0 # no compression
+
+      - if: contains(['snapshots'],${{ github.event.inputs.version }})
+        name: Upload sysupgrade image
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade
+          path: bin/targets/${{ steps.targetpath.outputs.replaced }}/openwrt-${{ github.event.inputs.target }}-${{ github.event.inputs.profile }}-squashfs-sysupgrade.img.gz
           retention-days: 7
           compression-level: 0 # no compression
