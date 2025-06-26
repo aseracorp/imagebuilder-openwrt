@@ -9,7 +9,7 @@ USE_PROCD=1
 
 start_service() {
         procd_open_instance
-        procd_set_param command /bin/sh "/opt/cosmos/start.sh"
+        procd_set_param command /bin/bash "/opt/cosmos/start.sh"
         procd_append_param command daemon
         procd_set_param pidfile /var/run/CosmosCloud.pid
         procd_set_param term_timeout 60
