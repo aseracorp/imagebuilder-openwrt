@@ -33,11 +33,11 @@ on:
         required: false
         type: string
         default: '896'
-      ssh-key:
-        description: 'Add authorized SSH-Key'
+      storage:
+        description: 'disk name for btrfs-partition for use in cosmos (leave empty if you use rootfs)'
         required: false
         type: string
-        default: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWOSY2frpHkUagJB4ZFtK4aLkLUUkdSP6nAYl4h+/QJ eddsa-key-20240826'
+        default: 'mmcblk0'
 
 env:
   VERSION: "snapshots"
@@ -63,6 +63,8 @@ jobs:
                       --build-arg packages="${{ github.event.inputs.packages }}" \
                       --build-arg files="${{ github.event.inputs.files }}" \
                       --build-arg rootfs_partsize="${{ github.event.inputs.rootfs_partsize }}" \
+                      --build-arg ssh_key="${{ secrets.SSH_KEY }}" \
+                      --build-arg storage="${{ github.event.inputs.storage }}" \
                       -t openwrt-builder .
 
       - name: Copy artifacts from container
@@ -78,7 +80,7 @@ jobs:
           string: ${{ format(github.event.inputs.target) }}
           replace-with: '/'
 
-      - if: ! contains(['snapshots'],${{ env.VERSION }})
+      - if: ${{ env.VERSION != 'snapshots'}}
         name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
@@ -87,7 +89,7 @@ jobs:
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: ! contains(['snapshots'],${{ env.VERSION }})
+      - if: ${{ env.VERSION != 'snapshots'}}
         name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
         with:
@@ -96,7 +98,7 @@ jobs:
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: contains(['snapshots'],${{ env.VERSION }})
+      - if: ${{ env.VERSION == 'snapshots'}}
         name: Upload factory image
         uses: actions/upload-artifact@v4
         with:
@@ -105,7 +107,7 @@ jobs:
           retention-days: 7
           compression-level: 0 # no compression
 
-      - if: contains(['snapshots'],${{ env.VERSION }})
+      - if: ${{ env.VERSION == 'snapshots'}}
         name: Upload sysupgrade image
         uses: actions/upload-artifact@v4
         with:

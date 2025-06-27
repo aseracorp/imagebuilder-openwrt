@@ -1,25 +1,28 @@
 FROM debian:stable
 
-ARG version=snapshots
+ARG version=
 ENV version=$version
 
-ARG target=bcm27xx-bcm2711
+ARG target=
 ENV target=$target
 
-ARG profile=rpi-4
+ARG profile=
 ENV profile=$profile
 
 ARG packages=
 ENV packages=$packages
 
-ARG files=files
+ARG files=
 ENV files=$files
 
-ARG rootfs_partsize=896
+ARG rootfs_partsize=
 ENV rootfs_partsize=$rootfs_partsize
 
-ARG ssh-key=
-ENV ssh-key=$ssh-key
+ARG ssh_key=
+ENV ssh_key=$ssh_key
+
+ARG storage=
+ENV storage=$storage
 
 SHELL ["/bin/bash", "-c"]
 
@@ -57,7 +60,11 @@ RUN echo "INSTALLING COSMOS CLOUD..." && \
     unzip -o "${ZIP_FILE}" && \
     mv cosmos-cloud-${LATEST_RELEASE#v}-arm64/* files/opt/cosmos/
 
-RUN mkdir -p files/etc/dropbear && echo "${ssh-key}" >> files/etc/dropbear/authorized_keys
+RUN mkdir -p files/etc/dropbear && echo "${ssh_key}" >> files/etc/dropbear/authorized_keys && \
+    mkdir -p files/root && \
+    echo "" > files/opt/cosmos/init.conf && \
+    echo "STORAGE=${storage}" >> files/opt/cosmos/.env && \
+    echo "ROOTFS_PARTSIZE=${rootfs_partsize}" >> files/opt/cosmos/.env
 
 COPY --chmod=755 files files
 

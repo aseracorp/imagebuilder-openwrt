@@ -16,6 +16,11 @@ cosmos=1
 # log potential errors
 exec >/tmp/99-cosmos-default.log 2>&1
 
+# disable Password-Login for SSH = only allow authorized_keys
+uci set dropbear.main.PasswordAuth='off'
+uci set dropbear.main.RootPasswordAuth='off'
+uci commit dropbear
+
 if [ -n "$root_password" ]; then
   (echo "$root_password"; sleep 1; echo "$root_password") | passwd > /dev/null
 fi

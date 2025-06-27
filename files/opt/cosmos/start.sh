@@ -3,50 +3,49 @@
 # should the docker volumes be copy on write? This enables compression but accelerates writes onto disk which is harmful for the disk with f.e. database-files. You then need to disable it manually (for databases) on a subfolder basis with 'chattr +C <path-to-subfolder>'. !! Only applies to new files created !!
 # cow=true
 
-# additional storage for cosmos? (mmcblk0=internal eMMC)
-storage="mmcblk0"
-
 cd /opt/cosmos
+source .env
 touch init.conf
 
 # workaround for raspberry pi retaining settings after reflash (https://forum.openwrt.org/t/pi-remembers-my-mistakes/164450/14)
-if [[ $(cat init.conf) = "commissioned successfully" ]]; then
-    if [ -n "$storage" ]; then
-        if [ ! -e /dev/"$storage"p3 ]; then
+if [[ $(cat init.conf) = "commissioned successfully with btrfs-storage" ]]; then
+    if [ -n "${STORAGE}" ]; then
+        if [ ! -e /dev/"${STORAGE}"p3 ]; then
             # missing partition despite state "commission successfully", force re-init
             firstboot -y && reboot && exit 0
         fi
     fi
 fi
 
-if [[ $(cat init.conf) != "commissioned successfully" ]]; then
+if [[ $(cat init.conf) != "commissioned successfully with btrfs-storage" ]]; then
     echo "$(date +"%F_%H%M%S") start init..." >> init.log
     #mount eMMC (btrfs) filesystem (used for cosmos)
-    if [ -n "$storage" ]; then
-        if [ ! -e /dev/"$storage"p3 ]; then
-            echo "$(date +"%F_%H%M%S") add 3rd partition (btrfs) on empty space..." >> init.log
+    if [ -n "${STORAGE}" ]; then
+        if [ ! -e /dev/"${STORAGE}"p3 ]; then
+            start_sector=$(((64+8+${ROOTFS_PARTSIZE})*2048))
+            echo "$(date +"%F_%H%M%S") add 3rd partition (btrfs) on empty space (start-sector: ${start_sector})..." >> init.log
             # add & format 3rd partition after 1024MB
             echo "n
             p
             3
-            2097152
+            $start_sector
 
-            w" | fdisk -W always /dev/"$storage"
+            w" | fdisk -W always /dev/"${STORAGE}"
             echo "$(date +"%F_%H%M%S") format 3rd partition (btrfs)..." >> init.log
             sleep 5
-            partx -u /dev/"$storage"
-            mkfs.btrfs /dev/"$storage"p3
+            partx -u /dev/"${STORAGE}"
+            mkfs.btrfs /dev/"${STORAGE}"p3
             sleep 5
         fi
-        if [[ $(findmnt /opt/docker/ -no SOURCE) != "/dev/${storage}p3" ]]; then
-            partx -u /dev/"$storage"
+        if [[ $(findmnt /opt/docker/ -no SOURCE) != "/dev/${STORAGE}p3" ]]; then
+            partx -u /dev/"${STORAGE}"
             #stop docker service
             service dockerd stop
             # clear docker dir
             rm -R /opt/docker/*
             # mount btrfs partition to docker dir
             echo "$(date +"%F_%H%M%S") mount 3rd partition (btrfs)..." >> init.log
-            sleep 10 && block detect | uci import fstab
+            sleep 5 && block detect | uci import fstab
             uci set fstab.@mount[-1].target='/opt/docker'
             uci set fstab.@mount[-1].enabled='1'
             uci set fstab.@mount[-1].options='compress=zstd:10'
@@ -57,7 +56,7 @@ if [[ $(cat init.conf) != "commissioned successfully" ]]; then
             uci commit dockerd
             service dockerd start
         fi
-        if [[ $(findmnt /opt/docker/ -no SOURCE) = "/dev/${storage}p3" ]]; then
+        if [[ $(findmnt /opt/docker/ -no SOURCE) = "/dev/${STORAGE}p3" ]]; then
             if [ -z ${cow+x} ]; then
                 echo "$(date +"%F_%H%M%S") disable copy on write on docker volumes..." >> init.log
                 mkdir -p /opt/docker/volumes
@@ -68,11 +67,14 @@ if [[ $(cat init.conf) != "commissioned successfully" ]]; then
                 chattr -C /opt/docker/volumes
             fi
             echo "$(date +"%F_%H%M%S") partition successfully mounted, store state as commissioned in init.conf. Delete the file to check partition-setup again" >> init.log
-            echo "commissioned successfully" > init.conf
+            echo "commissioned successfully with btrfs-storage" > init.conf
         else
-            echo "$(date +"%F_%H%M%S") failed to mount, reboot in 10s and try again..." >> init.log && \
-            sleep 10 && reboot && exit 0 #reboot, because all other commands like partx -u... weren't reliable
+            echo "$(date +"%F_%H%M%S") failed to mount, reboot now and try again..." >> init.log && \
+            reboot && exit 0 #reboot, because all other commands like partx -u... weren't reliable
         fi
+    else
+        echo "$(date +"%F_%H%M%S") init finished without btrfs-storage" >> init.log
+        echo "commissioned successfully without btrfs-storage" > init.conf
     fi
 fi
 
