@@ -18,11 +18,12 @@ ENV files=$files
 ARG rootfs_partsize=
 ENV rootfs_partsize=$rootfs_partsize
 
-ARG ssh_key=
-ENV ssh_key=$ssh_key
-
 ARG storage=
 ENV storage=$storage
+
+ARG prod=
+ENV prod=$prod
+
 
 SHELL ["/bin/bash", "-c"]
 
@@ -49,6 +50,7 @@ WORKDIR /openwrt/openwrt-imagebuilder
 RUN echo "INSTALLING COSMOS CLOUD..." && \
     echo "Creating directories..." && \
     mkdir -p files/opt/cosmos && \
+    mkdir -p files/etc/dropbear && \
     LATEST_RELEASE=$(curl -s https://api.github.com/repos/azukaar/Cosmos-Server/releases/latest | grep "tag_name" | cut -d '"' -f 4) && \
     echo "Downloading Cosmos release $LATEST_RELEASE..." && \
     ZIP_FILE="cosmos-cloud-${LATEST_RELEASE#v}-arm64.zip" && \
@@ -58,13 +60,21 @@ RUN echo "INSTALLING COSMOS CLOUD..." && \
     md5sum -c "${ZIP_FILE}.md5" && \
     echo "Extracting files..." && \
     unzip -o "${ZIP_FILE}" && \
-    mv cosmos-cloud-${LATEST_RELEASE#v}-arm64/* files/opt/cosmos/
-
-RUN mkdir -p files/etc/dropbear && echo "${ssh_key}" >> files/etc/dropbear/authorized_keys && \
-    mkdir -p files/root && \
+    mv cosmos-cloud-${LATEST_RELEASE#v}-arm64/* files/opt/cosmos/ && \
     echo "" > files/opt/cosmos/init.conf && \
     echo "STORAGE=${storage}" >> files/opt/cosmos/.env && \
-    echo "ROOTFS_PARTSIZE=${rootfs_partsize}" >> files/opt/cosmos/.env
+    echo "ROOTFS_PARTSIZE=${rootfs_partsize}" >> files/opt/cosmos/.env && \
+    echo "PROD=${prod}" >> files/opt/cosmos/.env
+
+RUN --mount=type=secret,id=TAILSCALE_SERVER,env=tailscale_server \
+    echo "TAILSCALE_SERVER=${tailscale_server}" >> files/opt/cosmos/.env
+
+RUN --mount=type=secret,id=TAILSCALE_KEY,env=tailscale_key \
+    echo "TAILSCALE_KEY=${tailscale_key}" >> files/opt/cosmos/.env
+
+RUN --mount=type=secret,id=SSH_KEY,env=ssh_key \
+    echo "${ssh_key}" >> files/etc/dropbear/authorized_keys
+    
 
 COPY --chmod=755 files files
 

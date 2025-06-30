@@ -38,9 +38,17 @@ on:
         required: false
         type: string
         default: 'mmcblk0'
+      prod:
+        description: 'install production-key?'
+        required: false
+        type: boolean
+        default: false
 
 env:
   VERSION: "snapshots"
+  TAILSCALE_KEY: ${{ secrets.TAILSCALE_TESTKEY }}
+  TAILSCALE_SERVER: ${{ secrets.TAILSCALE_SERVER }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
 
 jobs:
   build:
@@ -55,6 +63,9 @@ jobs:
       - if: ${{ github.event.inputs.version != '' }}
         run: echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
 
+      - if: ${{ github.event.inputs.prod }}
+        run: echo "TAILSCALE_KEY=${{ secrets.TAILSCALE_PRODKEY }}" >> "$GITHUB_ENV"
+
       - name: Build OpenWrt image
         run: |
           docker build --build-arg version=${{ env.VERSION }} \
@@ -63,8 +74,11 @@ jobs:
                       --build-arg packages="${{ github.event.inputs.packages }}" \
                       --build-arg files="${{ github.event.inputs.files }}" \
                       --build-arg rootfs_partsize="${{ github.event.inputs.rootfs_partsize }}" \
-                      --build-arg ssh_key="${{ secrets.SSH_KEY }}" \
                       --build-arg storage="${{ github.event.inputs.storage }}" \
+                      --build-arg prod="${{ github.event.inputs.prod }}" \
+                      --secret id=SSH_KEY \
+                      --secret id=TAILSCALE_SERVER \
+                      --secret id=TAILSCALE_KEY \
                       -t openwrt-builder .
 
       - name: Copy artifacts from container

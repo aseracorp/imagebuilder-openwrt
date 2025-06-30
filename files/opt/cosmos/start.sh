@@ -17,8 +17,18 @@ if [[ $(cat init.conf) = "commissioned successfully with btrfs-storage" ]]; then
     fi
 fi
 
-if [[ $(cat init.conf) != "commissioned successfully with btrfs-storage" ]]; then
+if [[ $(cat init.conf | cut -c 0-25) != "commissioned successfully" ]]; then
     echo "$(date +"%F_%H%M%S") start init..." >> init.log
+    if [ $(tailscale status --peers=false --json | grep Online | sed -e "s/^.*: //" -e "s/,$//") != "true" ]; then
+        echo "$(date +"%F_%H%M%S") configure tailscale and remove keys..." >> init.log
+        tailscale up --login-server=${TAILSCALE_SERVER} --auth-key=${TAILSCALE_KEY} --ssh --accept-dns --accept-routes
+        if [ ${PROD} -eq 1 ]; then
+            #Disable tailscale on production-nodes
+            tailscale down
+        else
+            service tailscale enable
+        fi
+    fi
     #mount eMMC (btrfs) filesystem (used for cosmos)
     if [ -n "${STORAGE}" ]; then
         if [ ! -e /dev/"${STORAGE}"p3 ]; then
